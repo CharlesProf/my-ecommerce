@@ -38,7 +38,7 @@ export function Navbar() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+                <NavigationMenuTrigger>Shop & Products</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
                     <li className="row-span-3">
@@ -48,16 +48,16 @@ export function Navbar() {
                           href="/products"
                         >
                           <div className="mb-2 mt-4 text-lg font-medium">
-                            All Products
+                            Shop & Products
                           </div>
                           <p className="text-sm leading-tight text-muted-foreground">
-                            Browse our entire product catalog
+                            Browse our Shops & Products
                           </p>
                         </Link>
                       </NavigationMenuLink>
                     </li>
                     <ListItem href="/products/featured" title="Featured">
-                      Check out our featured products
+                      Check out our featured store products 
                     </ListItem>
                     <ListItem href="/products/new" title="New Arrivals">
                       Latest products just added
@@ -71,7 +71,7 @@ export function Navbar() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/about" className={navigationMenuTriggerStyle()}>
+                  <Link href="/Transactions" className={navigationMenuTriggerStyle()}>
                     About
                   </Link>
                 </NavigationMenuLink>
@@ -79,8 +79,16 @@ export function Navbar() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/contact" className={navigationMenuTriggerStyle()}>
+                  <Link href="/About" className={navigationMenuTriggerStyle()}>
                     Contact
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link href="/Settings" className={navigationMenuTriggerStyle()}>
+                    Settings
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
