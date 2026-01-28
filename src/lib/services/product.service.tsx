@@ -4,6 +4,7 @@ import {
   findProductWithAdmin,
   deleteProductById,
   updateProductStatus,
+  updateProductById,
 } from "@/lib/repositories/product.repo";
 import { db } from "@/lib/db";
 import { stores } from "@/lib/db/schema";
@@ -68,4 +69,31 @@ export async function toggleProductStatusService(
 
   const newStatus = product.isActive === 1 ? 0 : 1;
   return updateProductStatus(productId, newStatus);
+}
+
+export async function updateProductService(
+  data: {
+    productId: string;
+    name: string;
+    description: string;
+    price: string;
+    productionCost: string;
+    stock: number | null;
+    imageUrl: string;
+    sku: string;
+    storeId: string;
+    subcategoryId: string;
+  }
+){
+  return updateProductById(data.productId, {
+    name: data.name,
+    description: data.description || null,
+    price: data.price,
+    productionCost: data.productionCost || null,
+    stock: data.stock ?? 0,
+    sku: data.sku || null,
+    imageUrl: data.imageUrl || null,
+    storeId: data.storeId,
+    subcategoryId: data.subcategoryId || null,
+  });
 }

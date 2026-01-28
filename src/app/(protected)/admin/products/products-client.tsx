@@ -31,6 +31,7 @@ import { deleteProduct, toggleProductStatus } from "../../../api/product/actions
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { EditProductDialog } from "./edit-product-dialog";
 
 type Store = {
   id: string;
@@ -84,7 +85,8 @@ export function ProductsClient({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const selectedStoreName = selectedStore
     ? stores.find(s => s.id === selectedStore)?.name || "Select a Store"
     : "Select a Store";
@@ -118,6 +120,11 @@ export function ProductsClient({
     } finally {
       setTogglingId(null);
     }
+  };
+
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product);
+    setIsEditDialogOpen(true);
   };
 
 
@@ -289,7 +296,11 @@ export function ProductsClient({
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEdit(product)}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -324,6 +335,17 @@ export function ProductsClient({
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
       />
+
+       {/* Edit Product Dialog */}
+      <EditProductDialog
+        product={selectedProduct}
+        stores={stores}
+        categories={categories}
+        subcategories={subcategories}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
+
     </div>
   );
 }
