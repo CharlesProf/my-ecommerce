@@ -45,7 +45,10 @@ export function EditCategoryDialog({
 
     setLoading(true);
     try {
-      await updateCategory(category.id, { name });
+      await updateCategory({
+        categoryId: category.id,
+        name,
+      });
       router.refresh();
       onOpenChange(false);
     } finally {
