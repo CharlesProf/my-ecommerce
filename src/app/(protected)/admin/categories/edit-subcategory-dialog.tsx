@@ -65,10 +65,11 @@ export function EditSubcategoryDialog({
 
     setLoading(true);
     try {
-      await updateSubcategory(subcategory.id, {
-        name: name.trim(),
+      await updateSubcategory(
         categoryId,
-      });
+        subcategory.id,
+        name.trim()
+      );
       router.refresh();
       onOpenChange(false);
     } finally {
