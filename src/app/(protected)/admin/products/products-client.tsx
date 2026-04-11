@@ -43,6 +43,8 @@ type Product = {
   name: string;
   description: string | null;
   price: string;
+  priceSales: string | null;
+  isSales: number | null;
   productionCost: string | null;
   stock: number | null;
   imageUrl: string | null;
@@ -272,7 +274,20 @@ export function ProductsClient({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{formatPrice(product.price)}</TableCell>
+                      <TableCell>
+                        {product.isSales === 1 && product.priceSales ? (
+                          <div className="space-y-1">
+                            <p className="text-xs line-through text-muted-foreground">
+                              {formatPrice(product.price)}
+                            </p>
+                            <p className="font-semibold text-red-600">
+                              {formatPrice(product.priceSales)}
+                            </p>
+                          </div>
+                        ) : (
+                          formatPrice(product.price)
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={
                           (product.stock || 0) > 10 ? "default" :

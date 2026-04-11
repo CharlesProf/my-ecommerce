@@ -6,6 +6,8 @@ export async function insertProduct(data: {
   name: string;
   description: string | null;
   price: string;
+  priceSales: string | null;
+  isSales: number;
   productionCost: string | null;
   stock: number;
   sku: string | null;
@@ -55,6 +57,8 @@ export async function updateProductById(
     name: string;
     description: string | null;
     price: string;
+    priceSales: string | null;
+    isSales: number;
     productionCost: string | null;
     stock: number;
     sku: string | null;

@@ -17,13 +17,21 @@ export const stores = pgTable('stores', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Staff table (relationship between staff and stores/admin)
+export const staff = pgTable('staff', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').references(() => users.id).notNull(),    // siapa staffnya
+  ownerId: text('owner_id').references(() => users.id).notNull(),  // owner mana yang assign dia
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Categories table
 export const categories = pgTable('categories', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   storeId: uuid('store_id').references(() => stores.id),
   createdAt: timestamp('created_at').defaultNow(),
-  categoryListId: text('categorylist_id').references(() => categoryLists.id)
+  categoryListId: uuid('categorylist_id').references(() => categoryLists.id)
 });
 
 // Subcategories table
@@ -47,6 +55,8 @@ export const products = pgTable('products', {
   imageUrl: text('image_url'), // Main product image URL
   imageUrls: text('image_urls'), // JSON array of multiple image URLs
   sku: text('sku'), // Stock Keeping Unit
+  isSales: integer('is_sales').default(0), // 0 = not on sale, 1 = on sale
+  priceSales: decimal('price_sales', { precision: 10, scale: 2 }).default("0"),
   isActive: integer('is_active').default(1), // 1 = active, 0 = inactive
   createdAt: timestamp('created_at').defaultNow(),
 });

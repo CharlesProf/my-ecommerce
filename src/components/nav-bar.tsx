@@ -12,26 +12,31 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { CartSheet } from "@/components/cart-sheet"
 import { cn } from "@/lib/utils"
+import { ShoppingBag } from "lucide-react"
 
 export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-8">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
         {/* Left side - Logo */}
-        <div className="flex items-center min-w-[200px]">
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-xl">MyApp</span>
+        <div className="flex items-center min-w-fit">
+          <Link href="/users/home" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+              <ShoppingBag className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-bold text-lg hidden sm:block">Store</span>
           </Link>
         </div>
 
-        {/* Center - Navigation Menu */}
-        <div className="flex justify-center">
+        {/* Center - Navigation Menu (hidden on mobile) */}
+        <div className="hidden md:flex justify-center flex-1">
           <NavigationMenu>
             <NavigationMenuList className="gap-6">
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/home" className={navigationMenuTriggerStyle()}>
+                  <Link href="/users/home" className={navigationMenuTriggerStyle()}>
                     Home
                   </Link>
                 </NavigationMenuLink>
@@ -96,8 +101,9 @@ export function Navbar() {
           </NavigationMenu>
         </div>
 
-        {/* Right side - User Button and Theme Toggle */}
-        <div className="flex items-center justify-end gap-4 min-w-[200px]">
+        {/* Right side - Cart, User Button and Theme Toggle */}
+        <div className="flex items-center justify-end gap-2 md:gap-4">
+          <CartSheet />
           <UserButton 
             afterSignOutUrl="/sign-in"
             appearance={{

@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, ChevronRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { SearchDropdown } from "@/components/search-dropdown";
 import Link from "next/link";
-import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/product-card";
+import { CategoryCard } from "@/components/category-card";
+import { ChevronRight, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
 type Category = {
   id: string;
@@ -19,23 +27,31 @@ type Product = {
   id: string;
   name: string;
   price: string;
+  priceSales?: string | null;
+  isSales?: number | null;
   imageUrl: string | null;
-  categoryName: string;
+  categoryName: string | null;
 };
+
+interface HomePageClientProps {
+  topCategories: Category[];
+  featuredProducts: Product[];
+}
 
 export function HomePageClient({
   topCategories,
   featuredProducts,
-}: {
-  topCategories: Category[];
-  featuredProducts: Product[];
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
+}: HomePageClientProps) {
   const [mounted, setMounted] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    new Set()
+  );
+
   const heroRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  const productsRef = useRef<HTMLDivElement>(null);
 
+  // Setup intersection observer for animations
   useEffect(() => {
     setMounted(true);
 
@@ -54,26 +70,37 @@ export function HomePageClient({
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
 
-    if (categoriesRef.current) observer.observe(categoriesRef.current);
-    if (carouselRef.current) observer.observe(carouselRef.current);
+    [categoriesRef.current, productsRef.current].forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
 
     return () => observer.disconnect();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+  // Filter products by selected categories
+  const filteredProducts = selectedCategories.size === 0
+    ? featuredProducts
+    : featuredProducts.filter(
+        (product) =>
+          product.categoryName &&
+          selectedCategories.has(product.categoryName)
+      );
+
+  // Toggle category selection
+  const toggleCategory = (categoryName: string) => {
+    const newSelected = new Set(selectedCategories);
+    if (newSelected.has(categoryName)) {
+      newSelected.delete(categoryName);
+    } else {
+      newSelected.add(categoryName);
     }
+    setSelectedCategories(newSelected);
   };
 
-  const formatPrice = (price: string) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(parseFloat(price));
-  };
+  // Get unique category names from products
+  const productCategories = Array.from(
+    new Set(featuredProducts.map((p) => p.categoryName).filter(Boolean))
+  ).sort() as string[];
 
   return (
     <div className="min-h-screen">
@@ -83,7 +110,7 @@ export function HomePageClient({
         className="relative min-h-[70vh] flex items-center justify-center px-4 py-20 overflow-hidden bg-gradient-to-br from-background via-background to-muted"
       >
         {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
@@ -92,7 +119,7 @@ export function HomePageClient({
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
           <div className="space-y-4 animate-fade-in">
-            <h1 className="text-6xl md:text-7xl font-bold tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground to-foreground">
                 Discover
               </span>
@@ -101,38 +128,27 @@ export function HomePageClient({
                 Amazing Products
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Search through thousands of products and categories
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Shop from our extensive collection of quality products
             </p>
           </div>
 
           {/* Search Bar */}
-          <form
-            onSubmit={handleSearch}
+          <div
             className="max-w-2xl mx-auto animate-slide-up"
             style={{ animationDelay: "200ms" }}
           >
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary/50 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300" />
-              <div className="relative flex items-center bg-background border-2 border-border rounded-2xl shadow-lg overflow-hidden group-hover:border-primary/50 transition-colors">
-                <Input
-                  type="text"
-                  placeholder="Search for products, categories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 border-0 focus-visible:ring-0 text-lg px-6 py-7 bg-transparent"
+              <div className="relative">
+                <SearchDropdown
+                  placeholder="Search products..."
+                  className="w-full"
+                  products={featuredProducts}
                 />
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="m-2 rounded-xl"
-                >
-                  <Search className="h-5 w-5 mr-2" />
-                  Search
-                </Button>
               </div>
             </div>
-          </form>
+          </div>
         </div>
       </section>
 
@@ -141,117 +157,144 @@ export function HomePageClient({
         ref={categoriesRef}
         className="max-w-7xl mx-auto px-4 py-20 opacity-0 translate-y-10 transition-all duration-1000"
       >
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Top Categories
-          </h2>
-          <div className="w-24 h-1.5 bg-primary mx-auto rounded-full" />
-        </div>
+        <div className="space-y-12">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Top Categories
+            </h2>
+            <div className="w-24 h-1.5 bg-primary mx-auto rounded-full" />
+          </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {topCategories.map((category, index) => (
-            <Link
-              key={category.id}
-              href={`/categories/${category.id}`}
-              className="group"
-              style={{
-                animation: mounted ? `slide-up 0.6s ease-out ${index * 0.1}s both` : "none",
-              }}
-            >
-              <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
-                <CardContent className="p-0">
-                  <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50">
-                    {category.imageUrl ? (
-                      <Image
-                        src={category.imageUrl}
-                        alt={category.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-2xl font-bold">
-                          {category.name.charAt(0)}
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-                  <div className="p-4 bg-card">
-                    <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                      {category.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {category.productCount} products
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+            {topCategories.map((category, index) => (
+              <CategoryCard
+                key={category.id}
+                id={category.id}
+                name={category.name}
+                imageUrl={category.imageUrl}
+                productCount={category.productCount}
+                isAnimated={mounted}
+                animationDelay={`${index * 0.1}s`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Featured Products Carousel */}
+      {/* Featured Products Section */}
       <section
-        ref={carouselRef}
+        ref={productsRef}
         className="max-w-7xl mx-auto px-4 py-20 opacity-0 translate-y-10 transition-all duration-1000"
       >
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Featured Products
-          </h2>
-          <div className="w-24 h-1.5 bg-primary mx-auto rounded-full" />
-        </div>
+        <div className="space-y-8">
+          {/* Header with Category Filter */}
+          <div className="flex flex-col gap-6">
+            <div className="text-center">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">
+                Featured Products
+              </h2>
+              <div className="w-24 h-1.5 bg-primary mx-auto rounded-full" />
+            </div>
 
-        {/* Auto-scrolling Carousel */}
-        <div className="relative overflow-hidden py-4">
-          <div className="flex gap-6 animate-scroll-left hover:pause">
-            {/* Duplicate products for seamless loop */}
-            {[...featuredProducts, ...featuredProducts].map((product, index) => (
-              <Link
-                key={`${product.id}-${index}`}
-                href={`/products/${product.id}`}
-                className="flex-shrink-0 w-[300px] group"
-              >
-                <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 hover:shadow-2xl">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50">
-                      {product.imageUrl ? (
-                        <Image
-                          src={product.imageUrl}
-                          alt={product.name}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground text-3xl font-bold">
-                            {product.name.charAt(0)}
-                          </div>
-                        </div>
-                      )}
-                      <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 bg-background/90 backdrop-blur-sm border rounded-full text-xs font-semibold">
-                          {product.categoryName}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-card space-y-2">
-                      <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors">
-                        {product.name}
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xl font-bold text-primary">
-                          {formatPrice(product.price)}
-                        </p>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+            {/* Category Filter Dropdown (Tokopedia Style) */}
+            {productCategories.length > 0 && (
+              <div className="flex justify-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 rounded-full px-6 py-6 border-2 font-semibold hover:border-primary"
+                    >
+                      <span>
+                        {selectedCategories.size > 0
+                          ? `${selectedCategories.size} selected`
+                          : "Filter by Category"}
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-64">
+                    <DropdownMenuLabel className="font-bold">
+                      Filter Categories
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {productCategories.map((category) => (
+                      <DropdownMenuCheckboxItem
+                        key={category}
+                        checked={selectedCategories.has(category)}
+                        onCheckedChange={() => toggleCategory(category)}
+                      >
+                        {category}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    {selectedCategories.size > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedCategories(new Set())}
+                          className="w-full justify-center text-xs mt-2"
+                        >
+                          Clear Filters
+                        </Button>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  style={{
+                    animation: mounted
+                      ? `slide-up 0.6s ease-out ${index * 0.05}s both`
+                      : "none",
+                  }}
+                >
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    priceSales={product.priceSales}
+                    isSales={product.isSales === 1}
+                    imageUrl={product.imageUrl}
+                    categoryName={product.categoryName}
+                    showAddToCart={true}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full flex justify-center items-center py-20">
+                <div className="text-center space-y-4">
+                  <p className="text-lg text-muted-foreground font-medium">
+                    No products found in selected categories
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedCategories(new Set())}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* View All Products Link */}
+          <div className="flex justify-center pt-8">
+            <Link href="/products">
+              <Button size="lg" variant="outline" className="gap-2 px-8">
+                View All Products
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -260,19 +303,22 @@ export function HomePageClient({
       <section className="max-w-4xl mx-auto px-4 py-20">
         <div className="relative rounded-3xl overflow-hidden border-2 border-primary/20">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/80 to-primary/90" />
-          <div className="relative p-12 text-center text-primary-foreground space-y-6">
-            <h2 className="text-4xl font-bold">Ready to Start Shopping?</h2>
-            <p className="text-xl opacity-90">
-              Browse our full collection of amazing products
+          <div className="relative p-8 md:p-12 text-center text-primary-foreground space-y-6">
+            <h2 className="text-3xl md:text-4xl font-bold">
+              Ready to Start Shopping?
+            </h2>
+            <p className="text-lg md:text-xl opacity-90">
+              Explore our full collection of amazing products
             </p>
-            <Button
-              size="lg"
-              variant="secondary"
-              className="text-lg px-8 py-6 rounded-xl font-semibold"
-              onClick={() => (window.location.href = "/products")}
-            >
-              Explore All Products
-            </Button>
+            <Link href="/products">
+              <Button
+                size="lg"
+                variant="secondary"
+                className="text-base md:text-lg px-6 md:px-8 py-6 rounded-xl font-semibold"
+              >
+                Explore All Products
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

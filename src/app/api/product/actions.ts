@@ -35,6 +35,8 @@ export async function updateProduct(data: {
   name: string;
   description: string;
   price: string;
+  priceSales: string | null;
+  isSales: number;
   productionCost: string;
   stock: number | null;
   imageUrl: string;
