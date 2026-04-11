@@ -32,7 +32,7 @@ export default async function Home() {
         if (userRole === 'admin') {
           redirect('/admin')
         } else {
-          redirect('/users/profile')
+          redirect('/users/home')
         }
       }}>
         <Button type="submit">Continue</Button>

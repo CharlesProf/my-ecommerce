@@ -23,6 +23,7 @@ export const categories = pgTable('categories', {
   name: text('name').notNull(),
   storeId: uuid('store_id').references(() => stores.id),
   createdAt: timestamp('created_at').defaultNow(),
+  categoryListId: text('categorylist_id').references(() => categoryLists.id)
 });
 
 // Subcategories table
@@ -78,4 +79,12 @@ export const transactionItems = pgTable('transaction_items', {
   productId: uuid('product_id').references(() => products.id),
   quantity: integer('quantity').notNull(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+});
+
+// categoryLists table 
+export const categoryLists = pgTable('category_lists',{
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  imageUrl: text('image_url'), // Main product image URL
 });

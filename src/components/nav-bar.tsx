@@ -31,14 +31,14 @@ export function Navbar() {
             <NavigationMenuList className="gap-6">
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/" className={navigationMenuTriggerStyle()}>
+                  <Link href="/home" className={navigationMenuTriggerStyle()}>
                     Home
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <NavigationMenuTrigger>Shop & Products</NavigationMenuTrigger>
+                <NavigationMenuTrigger>Categories & Products</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
                     <li className="row-span-3">
@@ -48,10 +48,10 @@ export function Navbar() {
                           href="/products"
                         >
                           <div className="mb-2 mt-4 text-lg font-medium">
-                            Shop & Products
+                            Categories & Products
                           </div>
                           <p className="text-sm leading-tight text-muted-foreground">
-                            Browse our Shops & Products
+                            Browse our Categories & Products
                           </p>
                         </Link>
                       </NavigationMenuLink>
@@ -72,7 +72,7 @@ export function Navbar() {
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
                   <Link href="/Transactions" className={navigationMenuTriggerStyle()}>
-                    About
+                    Transactions
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -80,7 +80,7 @@ export function Navbar() {
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
                   <Link href="/About" className={navigationMenuTriggerStyle()}>
-                    Contact
+                    About
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
