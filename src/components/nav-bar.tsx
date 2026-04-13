@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState, type ChangeEvent } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { UserButton } from "@clerk/nextjs"
 import {
@@ -17,17 +19,68 @@ import { cn } from "@/lib/utils"
 import { ShoppingBag } from "lucide-react"
 
 export function Navbar() {
+  const router = useRouter()
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([])
+  const [selectedStoreId, setSelectedStoreId] = useState("")
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const currentStore = params.get("storeId") ?? ""
+    setSelectedStoreId(currentStore)
+
+    fetch("/api/stores")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.stores)) {
+          setStores(data.stores)
+        }
+      })
+      .catch(() => {
+        setStores([])
+      })
+  }, [])
+
+  const handleStoreChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextStore = event.target.value
+    setSelectedStoreId(nextStore)
+    const params = new URLSearchParams(window.location.search)
+
+    if (nextStore) {
+      params.set("storeId", nextStore)
+    } else {
+      params.delete("storeId")
+    }
+
+    const queryString = params.toString()
+    router.push(`${window.location.pathname}${queryString ? `?${queryString}` : ""}`)
+  }
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-8">
         {/* Left side - Logo */}
-        <div className="flex items-center min-w-fit">
+        <div className="flex items-center min-w-fit gap-3">
           <Link href="/users/home" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
               <ShoppingBag className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg hidden sm:block">Store</span>
+            <span className="font-bold text-lg hidden sm:block">
+              {stores.find((store) => store.id === selectedStoreId)?.name || "Store"}
+            </span>
           </Link>
+          {stores.length > 0 ? (
+            <select
+              value={selectedStoreId}
+              onChange={handleStoreChange}
+              className="hidden md:block rounded-full border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm outline-none transition focus:border-primary"
+            >
+              <option value="">All stores</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </div>
 
         {/* Center - Navigation Menu (hidden on mobile) */}
@@ -76,7 +129,7 @@ export function Navbar() {
 
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link href="/Transactions" className={navigationMenuTriggerStyle()}>
+                  <Link href="/users/Transactions" className={navigationMenuTriggerStyle()}>
                     Transactions
                   </Link>
                 </NavigationMenuLink>

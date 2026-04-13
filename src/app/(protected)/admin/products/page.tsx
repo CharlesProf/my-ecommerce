@@ -4,7 +4,7 @@ import { stores, users, products, subcategories, categories } from "@/lib/db/sch
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ProductsClient } from "./products-client";
-import { getAdminUser } from "@/lib/cache/userCache";
+import { getUser } from "@/lib/cache/userCache";
 
 export default async function ProductsPage() {
   const clerkUser = await currentUser();
@@ -13,7 +13,7 @@ export default async function ProductsPage() {
     redirect("/sign-in");
   }
 
-  const dbUser = await getAdminUser(clerkUser.id);
+  const dbUser = await getUser(clerkUser.id);
 
   if (!dbUser || dbUser.role !== "admin") {
     redirect("/");

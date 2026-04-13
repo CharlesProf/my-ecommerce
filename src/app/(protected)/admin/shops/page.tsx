@@ -4,7 +4,7 @@ import { stores, users } from "@/lib/db/schema";
 import { eq, and, like, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ShopsClient } from "./shops-client";
-import { getAdminUser } from "@/lib/cache/userCache";
+import { getUser } from "@/lib/cache/userCache";
 import { findStoreService } from "@/lib/services/store.service";
 
 export default async function ShopsPage({
@@ -18,7 +18,7 @@ export default async function ShopsPage({
     redirect("/sign-in");
   }
 
-  const dbUser = await getAdminUser(clerkUser.id);
+  const dbUser = await getUser(clerkUser.id);
 
   if (!dbUser || dbUser.role !== "admin") {
     redirect("/");

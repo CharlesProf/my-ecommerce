@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { stores } from "@/lib/db/schema";
+import { stores, staff } from "@/lib/db/schema";
 import { eq, and, or, like, sql } from "drizzle-orm";
+import { runDbQuery } from "@/lib/db/query-retry";
 
 
 export async function insertStore(data: {
@@ -58,4 +59,20 @@ export async function findAdminStores(
         )
       )
     );
+}
+
+export async function findStoresForStaff(userId: string) {
+  return runDbQuery(() =>
+    db
+      .select({
+        id: stores.id,
+        name: stores.name,
+        address: stores.address,
+        adminId: stores.adminId,
+        createdAt: stores.createdAt,
+      })
+      .from(stores)
+      .innerJoin(staff, eq(staff.ownerId, stores.adminId))
+      .where(eq(staff.userId, userId))
+  );
 }

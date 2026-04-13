@@ -4,6 +4,7 @@ import {
   deleteStoreById,
   updateStoreById,
   findAdminStores,
+  findStoresForStaff,
 } from "@/lib/repositories/store.repo";
 
 export async function createStoreService(
@@ -51,5 +52,14 @@ export async function findStoreService(
   search?: string,
 ) {
   return findAdminStores(adminId, search);
+}
+
+export async function getStoresForUser(userId: string) {
+  const staffStores = await findStoresForStaff(userId);
+  if (staffStores.length > 0) {
+    return staffStores;
+  }
+
+  return findAdminStores(userId);
 }
 

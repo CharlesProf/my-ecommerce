@@ -64,10 +64,12 @@ export const products = pgTable('products', {
 // User profiles table
 export const userProfiles = pgTable('user_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),
-  userId: text('user_id').references(() => users.id).notNull(),
-  fullName: text('full_name'),
-  phone: text('phone'),
+  userId: text('user_id').references(() => users.id),
+  storeId: uuid('store_id').references(() => stores.id),
+  fullName: text('full_name').notNull(),
+  phone: text('phone').notNull(),
   address: text('address'),
+  createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
@@ -76,9 +78,10 @@ export const transactions = pgTable('transactions', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: text('user_id').references(() => users.id),
   storeId: uuid('store_id').references(() => stores.id),
+  userProfileId: uuid('user_profile_id').references(() => userProfiles.id),
   totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
   status: text('status').notNull().default('pending'), // 'pending', 'completed', 'cancelled'
-  paymentMethod: text('payment_method'), // 'qris', 'card', etc.
+  paymentMethod: text('payment_method').notNull().default('QRIS'), // QRIS, Bank Transfer, Card
   createdAt: timestamp('created_at').defaultNow(),
 });
 

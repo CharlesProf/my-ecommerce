@@ -5,7 +5,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ClerkProvider } from "@clerk/nextjs";
-import { getAdminUser } from "@/lib/cache/userCache";
+import { getUser } from "@/lib/cache/userCache";
 
 export default async function AdminLayoutWrapper({
   children,
@@ -19,7 +19,7 @@ export default async function AdminLayoutWrapper({
   }
 
   // Check if user exists in database, create if not
-  const dbUser = await getAdminUser(clerkUser.id);
+  const dbUser = await getUser(clerkUser.id);
 
   // Check if user is admin
   if (dbUser?.role !== "admin") {

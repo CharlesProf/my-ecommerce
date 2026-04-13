@@ -31,20 +31,33 @@ type Product = {
   isSales?: number | null;
   imageUrl: string | null;
   categoryName: string | null;
+  storeId?: string | null;
+};
+
+type StoreOption = {
+  id: string;
+  name: string;
 };
 
 interface HomePageClientProps {
   topCategories: Category[];
   featuredProducts: Product[];
+  stores: StoreOption[];
+  initialStoreId?: string;
 }
 
 export function HomePageClient({
   topCategories,
   featuredProducts,
+  stores,
+  initialStoreId,
 }: HomePageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
     new Set()
+  );
+  const [selectedStoreId, setSelectedStoreId] = useState(
+    initialStoreId || ""
   );
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -77,14 +90,16 @@ export function HomePageClient({
     return () => observer.disconnect();
   }, []);
 
-  // Filter products by selected categories
-  const filteredProducts = selectedCategories.size === 0
-    ? featuredProducts
-    : featuredProducts.filter(
-        (product) =>
-          product.categoryName &&
-          selectedCategories.has(product.categoryName)
-      );
+  // Filter products by selected categories and selected store
+  const filteredProducts = featuredProducts.filter((product) => {
+    const matchesCategory =
+      selectedCategories.size === 0 ||
+      (product.categoryName && selectedCategories.has(product.categoryName));
+    const matchesStore =
+      !selectedStoreId || product.storeId === selectedStoreId;
+
+    return matchesCategory && matchesStore;
+  });
 
   // Toggle category selection
   const toggleCategory = (categoryName: string) => {
@@ -144,11 +159,12 @@ export function HomePageClient({
                 <SearchDropdown
                   placeholder="Search products..."
                   className="w-full"
-                  products={featuredProducts}
+                  products={filteredProducts}
                 />
               </div>
             </div>
           </div>
+
         </div>
       </section>
 

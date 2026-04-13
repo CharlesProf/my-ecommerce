@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,9 +16,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 import { Trash2, Plus, Minus } from "lucide-react";
-import Link from "next/link";
 
 export function CartSheet() {
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   const { items, removeItem, updateQuantity, getTotalPrice, getTotalItems } =
     useCart();
 
@@ -154,30 +157,27 @@ export function CartSheet() {
                   {formatPrice(totalPrice)}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Shipping:
-                </span>
-                <span className="font-semibold">
-                  {formatPrice(totalPrice > 0 ? 15000 : 0)}
-                </span>
-              </div>
-
               <Separator />
 
               <div className="flex justify-between items-center pt-2">
                 <span className="font-bold text-lg">Total:</span>
                 <span className="font-bold text-xl text-primary">
-                  {formatPrice(totalPrice + (totalPrice > 0 ? 15000 : 0))}
+                  {formatPrice(totalPrice)}
                 </span>
               </div>
 
               <Button
-                asChild
-                className="w-full h-11 rounded-lg font-semibold mt-4"
+                type="button"
                 size="lg"
+                className="w-full h-11 rounded-lg font-semibold mt-4"
+                onClick={async () => {
+                  setIsNavigating(true);
+                  await router.push("/users/checkout");
+                  setIsNavigating(false);
+                }}
+                disabled={isNavigating}
               >
-                <Link href="/checkout">Proceed to Checkout</Link>
+                {isNavigating ? "Proceeding..." : "Proceed to Checkout"}
               </Button>
             </div>
           </>
