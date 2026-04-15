@@ -188,8 +188,11 @@ export async function createTransactionService(data: CreateTransactionInput) {
           updatedAt: new Date(),
         })
         .where(eq(userProfiles.id, existingProfile.id))
-        .returning({ id: userProfiles.id });
-
+        .returning({
+          id: userProfiles.id,
+          fullName: userProfiles.fullName,
+          address: userProfiles.address,
+        });
       profile = updatedProfile ?? existingProfile;
     } else {
       const [createdProfile] = await tx
@@ -201,7 +204,11 @@ export async function createTransactionService(data: CreateTransactionInput) {
           phone: normalizedPhone,
           address: data.address?.trim() || null,
         })
-        .returning({ id: userProfiles.id });
+        .returning({
+          id: userProfiles.id,
+          fullName: userProfiles.fullName,
+          address: userProfiles.address,
+        });
 
       profile = createdProfile;
     }
