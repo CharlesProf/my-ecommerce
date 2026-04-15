@@ -31,7 +31,7 @@ import {
 import { getUser } from "@/lib/cache/userCache";
 import { findAdminStores } from "@/lib/repositories/store.repo";
 import { getAdminCustomersPageData } from "@/lib/services/customer.service";
-import { formatWIB } from "@/lib/utils/currency";
+import { formatIDR, formatWIB } from "@/lib/utils/currency";
 
 const PAGE_SIZE = 15;
 

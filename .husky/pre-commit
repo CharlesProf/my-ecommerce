@@ -1,14 +1,15 @@
 #!/bin/sh
 
-# Check for sensitive files
 FILES=".env .env.local .env.development.local .clerk"
 
+STAGED_FILES=$(git diff --cached --name-only)
+
 for FILE in $FILES; do
-  if git diff --cached --name-only | grep -q "$FILE"; then
+  echo "$STAGED_FILES" | grep -qx "$FILE" && {
     echo "❌ ERROR: Sensitive file '$FILE' detected in commit!"
     echo "Run: git rm --cached $FILE"
     exit 1
-  fi
+  }
 done
 
 echo "✅ No sensitive files detected"
