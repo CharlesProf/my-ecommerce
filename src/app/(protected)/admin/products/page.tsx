@@ -1,10 +1,11 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { stores, users, products, subcategories, categories } from "@/lib/db/schema";
+import { stores, products, subcategories, categories } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ProductsClient } from "./products-client";
 import { getUser } from "@/lib/cache/userCache";
+import { runDbQuery } from "@/lib/db/query-retry";
 
 export default async function ProductsPage() {
   const clerkUser = await currentUser();
@@ -18,61 +19,66 @@ export default async function ProductsPage() {
   if (!dbUser || dbUser.role !== "admin") {
     redirect("/");
   }
-  // Fetch admin's stores
-  const userStores = await db
-    .select()
-    .from(stores)
-    .where(eq(stores.adminId, clerkUser.id));
-
-  // Fetch all products with their related data
-  const allProducts = await db
-    .select({
-      id: products.id,
-      name: products.name,
-      description: products.description,
-      price: products.price,
-      priceSales: products.priceSales,
-      isSales: products.isSales,
-      productionCost: products.productionCost,
-      stock: products.stock,
-      imageUrl: products.imageUrl,
-      sku: products.sku,
-      isActive: products.isActive,
-      storeId: products.storeId,
-      storeName: stores.name,
-      subcategoryId: products.subcategoryId,
-      subcategoryName: subcategories.name,
-      categoryName: categories.name,
-      createdAt: products.createdAt,
-    })
-    .from(products)
-    .leftJoin(stores, eq(products.storeId, stores.id))
-    .leftJoin(subcategories, eq(products.subcategoryId, subcategories.id))
-    .leftJoin(categories, eq(subcategories.categoryId, categories.id))
-    .where(eq(stores.adminId, clerkUser.id));
-
-  // Fetch categories with subcategories for the add product form
-  const categoriesWithSubs = await db
-    .select({
-      id: categories.id,
-      name: categories.name,
-      storeId: categories.storeId,
-      storeName: stores.name,
-    })
-    .from(categories)
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(stores.adminId, clerkUser.id));
-
-  const allSubcategories = await db
-    .select({
-      id: subcategories.id,
-      name: subcategories.name,
-      categoryId: subcategories.categoryId,
-    })
-    .from(subcategories)
-    .leftJoin(categories, eq(subcategories.categoryId, categories.id))
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(stores.adminId, clerkUser.id));
+  const [userStores, allProducts, categoriesWithSubs, allSubcategories] =
+    await Promise.all([
+      runDbQuery(() =>
+        db
+          .select()
+          .from(stores)
+          .where(eq(stores.adminId, clerkUser.id))
+      ),
+      runDbQuery(() =>
+        db
+          .select({
+            id: products.id,
+            name: products.name,
+            description: products.description,
+            price: products.price,
+            priceSales: products.priceSales,
+            isSales: products.isSales,
+            productionCost: products.productionCost,
+            stock: products.stock,
+            imageUrl: products.imageUrl,
+            sku: products.sku,
+            isActive: products.isActive,
+            storeId: products.storeId,
+            storeName: stores.name,
+            subcategoryId: products.subcategoryId,
+            subcategoryName: subcategories.name,
+            categoryName: categories.name,
+            createdAt: products.createdAt,
+          })
+          .from(products)
+          .leftJoin(stores, eq(products.storeId, stores.id))
+          .leftJoin(subcategories, eq(products.subcategoryId, subcategories.id))
+          .leftJoin(categories, eq(subcategories.categoryId, categories.id))
+          .where(eq(stores.adminId, clerkUser.id))
+      ),
+      runDbQuery(() =>
+        db
+          .select({
+            id: categories.id,
+            name: categories.name,
+            storeId: categories.storeId,
+            storeName: stores.name,
+          })
+          .from(categories)
+          .leftJoin(stores, eq(categories.storeId, stores.id))
+          .where(eq(stores.adminId, clerkUser.id))
+      ),
+      runDbQuery(() =>
+        db
+          .select({
+            id: subcategories.id,
+            name: subcategories.name,
+            categoryId: subcategories.categoryId,
+          })
+          .from(subcategories)
+          .leftJoin(categories, eq(subcategories.categoryId, categories.id))
+          .leftJoin(stores, eq(categories.storeId, stores.id))
+          .where(eq(stores.adminId, clerkUser.id))
+      ),
+    ]);
 
   // Serialize data with proper null handling
   const serializedStores = userStores.map(store => ({

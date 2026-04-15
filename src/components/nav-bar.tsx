@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, type ChangeEvent } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { UserButton } from "@clerk/nextjs"
 import {
@@ -20,13 +20,16 @@ import { ShoppingBag } from "lucide-react"
 
 export function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [stores, setStores] = useState<{ id: string; name: string }[]>([])
-  const [selectedStoreId, setSelectedStoreId] = useState("")
+  const isAdminRoute = pathname.startsWith("/admin")
+  const selectedStoreId = searchParams.get("storeId") ?? ""
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const currentStore = params.get("storeId") ?? ""
-    setSelectedStoreId(currentStore)
+    if (isAdminRoute) {
+      return
+    }
 
     fetch("/api/stores")
       .then((res) => res.json())
@@ -38,11 +41,14 @@ export function Navbar() {
       .catch(() => {
         setStores([])
       })
-  }, [])
+  }, [isAdminRoute])
+
+  if (isAdminRoute) {
+    return null
+  }
 
   const handleStoreChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextStore = event.target.value
-    setSelectedStoreId(nextStore)
     const params = new URLSearchParams(window.location.search)
 
     if (nextStore) {

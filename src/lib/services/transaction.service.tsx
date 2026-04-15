@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { eq, desc, and, gt, sql } from "drizzle-orm";
+import { eq, desc, and, gt, gte, lte, or, sql, type SQL } from "drizzle-orm";
 import {
   products,
   stores,
@@ -8,6 +8,7 @@ import {
   userProfiles,
 } from "@/lib/db/schema";
 import { runDbQuery } from "@/lib/db/query-retry";
+import { getStoresForUser } from "@/lib/services/store.service";
 
 export type CheckoutCartItem = {
   productId: string;
@@ -29,6 +30,104 @@ type CreateTransactionInput = {
 const VALID_PAYMENT_METHODS = ["QRIS", "Bank Transfer", "Card"];
 const VALID_TRANSACTION_STATUSES = ["pending", "completed"];
 
+export function normalizePhoneNumber(phone: string) {
+  return phone.replace(/\D/g, "");
+}
+
+export async function findCustomerByPhone(phone: string) {
+  const normalizedPhone = normalizePhoneNumber(phone);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const [profile] = await runDbQuery(() =>
+    db
+      .select({
+        id: userProfiles.id,
+        fullName: userProfiles.fullName,
+        phone: userProfiles.phone,
+        address: userProfiles.address,
+        storeId: userProfiles.storeId,
+      })
+      .from(userProfiles)
+      .where(
+        sql`regexp_replace(COALESCE(${userProfiles.phone}, ''), '\D', '', 'g') = ${normalizedPhone}`
+      )
+      .orderBy(desc(userProfiles.updatedAt), desc(userProfiles.createdAt))
+      .limit(1)
+  );
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    id: profile.id,
+    fullName: profile.fullName,
+    phone: profile.phone,
+    address: profile.address ?? "",
+    storeId: profile.storeId ?? null,
+  };
+}
+
+export async function searchCustomersForCheckout(
+  userId: string,
+  storeId: string,
+  query: string
+) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!storeId || !normalizedQuery) {
+    return [];
+  }
+
+  const accessibleStores = await getStoresForUser(userId);
+  const hasAccess = accessibleStores.some((store) => store.id === storeId);
+
+  if (!hasAccess) {
+    throw new Error("Forbidden");
+  }
+
+  const rows = await runDbQuery(() =>
+    db
+      .select({
+        id: userProfiles.id,
+        fullName: userProfiles.fullName,
+        phone: userProfiles.phone,
+        address: userProfiles.address,
+        updatedAt: userProfiles.updatedAt,
+      })
+      .from(userProfiles)
+      .where(
+        and(
+          eq(userProfiles.storeId, storeId),
+          or(
+            sql`LOWER(${userProfiles.fullName}) LIKE ${`%${normalizedQuery}%`}`,
+            sql`COALESCE(${userProfiles.phone}, '') LIKE ${`%${query.trim()}%`}`
+          )
+        )
+      )
+      .orderBy(desc(userProfiles.updatedAt), desc(userProfiles.createdAt))
+      .limit(20)
+  );
+
+  const seenPhones = new Set<string>();
+
+  return rows.filter((row) => {
+    const normalizedPhone = normalizePhoneNumber(row.phone ?? "");
+    if (!normalizedPhone || seenPhones.has(normalizedPhone)) {
+      return false;
+    }
+    seenPhones.add(normalizedPhone);
+    return true;
+  }).map((row) => ({
+    id: row.id,
+    fullName: row.fullName,
+    phone: row.phone,
+    address: row.address ?? "",
+  }));
+}
+
 export async function createTransactionService(data: CreateTransactionInput) {
   if (!data.items || data.items.length === 0) {
     throw new Error("Cart must contain at least one item.");
@@ -42,22 +141,70 @@ export async function createTransactionService(data: CreateTransactionInput) {
     throw new Error("Invalid transaction status.");
   }
 
+  const normalizedPhone = normalizePhoneNumber(data.phone);
+  if (!normalizedPhone) {
+    throw new Error("Invalid phone number.");
+  }
+
+  const normalizedFullName = data.fullName.trim();
+  if (!normalizedFullName) {
+    throw new Error("Customer name is required.");
+  }
+
   const totalAmount = data.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
   const created = await db.transaction(async (tx) => {
-    const [profile] = await tx
-      .insert(userProfiles)
-      .values({
-        userId: data.userId,
-        storeId: data.storeId,
-        fullName: data.fullName,
-        phone: data.phone,
-        address: data.address ?? null,
+    const [existingProfile] = await tx
+      .select({
+        id: userProfiles.id,
+        fullName: userProfiles.fullName,
+        address: userProfiles.address,
       })
-      .returning({ id: userProfiles.id });
+      .from(userProfiles)
+      .where(
+        sql`regexp_replace(COALESCE(${userProfiles.phone}, ''), '\D', '', 'g') = ${normalizedPhone}`
+      )
+      .orderBy(desc(userProfiles.updatedAt), desc(userProfiles.createdAt))
+      .limit(1);
+
+    let profile = existingProfile;
+
+    if (existingProfile) {
+      const nextAddress =
+        data.address?.trim() || existingProfile.address || null;
+      const nextName = existingProfile.fullName || normalizedFullName;
+
+      const [updatedProfile] = await tx
+        .update(userProfiles)
+        .set({
+          userId: data.userId,
+          storeId: data.storeId,
+          fullName: nextName,
+          phone: normalizedPhone,
+          address: nextAddress,
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfiles.id, existingProfile.id))
+        .returning({ id: userProfiles.id });
+
+      profile = updatedProfile ?? existingProfile;
+    } else {
+      const [createdProfile] = await tx
+        .insert(userProfiles)
+        .values({
+          userId: data.userId,
+          storeId: data.storeId,
+          fullName: normalizedFullName,
+          phone: normalizedPhone,
+          address: data.address?.trim() || null,
+        })
+        .returning({ id: userProfiles.id });
+
+      profile = createdProfile;
+    }
 
     if (!profile?.id) {
       throw new Error("Failed to create customer profile.");
@@ -167,6 +314,169 @@ export async function getTransactionsForUser(
     customerName: transaction.customerName ?? "-",
     customerPhone: transaction.customerPhone ?? "-",
   }));
+}
+
+type AdminTransactionDashboardInput = {
+  adminId: string;
+  storeId?: string;
+  page: number;
+  pageSize: number;
+  from: Date;
+  to: Date;
+  search?: string;
+};
+
+export async function getAdminTransactionDashboard({
+  adminId,
+  storeId,
+  page,
+  pageSize,
+  from,
+  to,
+  search,
+}: AdminTransactionDashboardInput) {
+  const offset = (page - 1) * pageSize;
+  const baseFilters: SQL<unknown>[] = [
+    eq(stores.adminId, adminId),
+    ...(storeId ? [eq(stores.id, storeId)] : []),
+    gte(transactions.createdAt, from),
+    lte(transactions.createdAt, to),
+  ];
+
+  const normalizedSearch = search?.trim().toLowerCase() ?? "";
+  if (normalizedSearch) {
+    const phoneLookup = search?.trim() ?? "";
+    baseFilters.push(
+      or(
+        sql`LOWER(COALESCE(${userProfiles.fullName}, '')) LIKE ${`%${normalizedSearch}%`}`,
+        sql`COALESCE(${userProfiles.phone}, '') LIKE ${`%${phoneLookup}%`}`
+      ) as SQL<unknown>
+    );
+  }
+
+  const completedFilters: SQL<unknown>[] = [
+    ...baseFilters,
+    eq(transactions.status, "completed"),
+  ];
+
+  const [rows, countRows, summaryRows, profitRows] = await Promise.all([
+    runDbQuery(() =>
+      db
+        .select({
+          id: transactions.id,
+          status: transactions.status,
+          paymentMethod: transactions.paymentMethod,
+          totalAmount: transactions.totalAmount,
+          createdAt: transactions.createdAt,
+          storeName: stores.name,
+          customerName: userProfiles.fullName,
+          customerPhone: userProfiles.phone,
+          itemCount:
+            sql<number>`COALESCE(SUM(${transactionItems.quantity}), 0)`.as(
+              "item_count"
+            ),
+          profit:
+            sql<string>`COALESCE(SUM((${transactionItems.price} - COALESCE(${products.productionCost}, 0)) * ${transactionItems.quantity}), 0)`.as(
+              "profit"
+            ),
+        })
+        .from(transactions)
+        .leftJoin(stores, eq(transactions.storeId, stores.id))
+        .leftJoin(userProfiles, eq(transactions.userProfileId, userProfiles.id))
+        .leftJoin(
+          transactionItems,
+          eq(transactionItems.transactionId, transactions.id)
+        )
+        .leftJoin(products, eq(transactionItems.productId, products.id))
+        .where(and(...baseFilters))
+        .groupBy(
+          transactions.id,
+          transactions.status,
+          transactions.paymentMethod,
+          transactions.totalAmount,
+          transactions.createdAt,
+          stores.name,
+          userProfiles.fullName,
+          userProfiles.phone
+        )
+        .orderBy(desc(transactions.createdAt))
+        .limit(pageSize)
+        .offset(offset)
+    ),
+    runDbQuery(() =>
+      db
+        .select({
+          count: sql<number>`COUNT(${transactions.id})`.as("count"),
+        })
+        .from(transactions)
+        .leftJoin(stores, eq(transactions.storeId, stores.id))
+        .where(and(...baseFilters))
+    ),
+    runDbQuery(() =>
+      db
+        .select({
+          totalTransactions:
+            sql<number>`COUNT(${transactions.id})`.as("total_transactions"),
+          completedTransactions:
+            sql<number>`COUNT(CASE WHEN ${transactions.status} = 'completed' THEN 1 END)`.as(
+              "completed_transactions"
+            ),
+          totalRevenue:
+            sql<string>`COALESCE(SUM(CASE WHEN ${transactions.status} = 'completed' THEN ${transactions.totalAmount} ELSE 0 END), 0)`.as(
+              "total_revenue"
+            ),
+        })
+        .from(transactions)
+        .leftJoin(stores, eq(transactions.storeId, stores.id))
+        .where(and(...baseFilters))
+    ),
+    runDbQuery(() =>
+      db
+        .select({
+          totalProfit:
+            sql<string>`COALESCE(SUM((${transactionItems.price} - COALESCE(${products.productionCost}, 0)) * ${transactionItems.quantity}), 0)`.as(
+              "total_profit"
+            ),
+        })
+        .from(transactionItems)
+        .leftJoin(products, eq(transactionItems.productId, products.id))
+        .leftJoin(transactions, eq(transactionItems.transactionId, transactions.id))
+        .leftJoin(stores, eq(transactions.storeId, stores.id))
+        .where(and(...completedFilters))
+    ),
+  ]);
+
+  const totalCount = Number(countRows[0]?.count ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const summary = summaryRows[0];
+  const profitSummary = profitRows[0];
+
+  return {
+    transactions: rows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      paymentMethod: row.paymentMethod,
+      totalAmount: row.totalAmount?.toString() ?? "0",
+      createdAt: row.createdAt?.toISOString() ?? null,
+      storeName: row.storeName ?? "-",
+      customerName: row.customerName ?? "-",
+      customerPhone: row.customerPhone ?? "-",
+      itemCount: Number(row.itemCount ?? 0),
+      profit: row.profit?.toString() ?? "0",
+    })),
+    summary: {
+      totalTransactions: Number(summary?.totalTransactions ?? 0),
+      completedTransactions: Number(summary?.completedTransactions ?? 0),
+      totalRevenue: summary?.totalRevenue?.toString() ?? "0",
+      totalProfit: profitSummary?.totalProfit?.toString() ?? "0",
+    },
+    pagination: {
+      page,
+      pageSize,
+      totalCount,
+      totalPages,
+    },
+  };
 }
 
 export async function getTransactionCountForUser(

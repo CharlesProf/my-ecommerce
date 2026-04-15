@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { stores, staff } from "@/lib/db/schema";
-import { eq, and, or, like, sql } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import { runDbQuery } from "@/lib/db/query-retry";
 
 
@@ -41,24 +41,28 @@ export async function findAdminStores(
   search?: string,
 ) {
   if (!search) {
-    return db
-      .select()
-      .from(stores)
-      .where(eq(stores.adminId, adminId));
+    return runDbQuery(() =>
+      db
+        .select()
+        .from(stores)
+        .where(eq(stores.adminId, adminId))
+    );
   }
   console.log(search);
-  return db
-    .select()
-    .from(stores)
-    .where(
-      and(
-        eq(stores.adminId, adminId),
-        or(
-        sql`LOWER(${stores.name}) LIKE ${`%${search.toLowerCase()}%`}`,
-        sql`LOWER(${stores.address}) LIKE ${`%${search.toLowerCase()}%`}`
+  return runDbQuery(() =>
+    db
+      .select()
+      .from(stores)
+      .where(
+        and(
+          eq(stores.adminId, adminId),
+          or(
+            sql`LOWER(${stores.name}) LIKE ${`%${search.toLowerCase()}%`}`,
+            sql`LOWER(${stores.address}) LIKE ${`%${search.toLowerCase()}%`}`
+          )
         )
       )
-    );
+  );
 }
 
 export async function findStoresForStaff(userId: string) {
