@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CartProvider } from "@/context/cart-context";
 import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
@@ -36,7 +37,9 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              {children}
+              <CartProvider>
+                {children}
+              </CartProvider>
           </ThemeProvider>
         </body>
       </html>

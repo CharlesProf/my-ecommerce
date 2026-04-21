@@ -31,6 +31,7 @@ import { deleteProduct, toggleProductStatus } from "../../../api/product/actions
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { EditProductDialog } from "./edit-product-dialog";
 
 type Store = {
   id: string;
@@ -42,6 +43,8 @@ type Product = {
   name: string;
   description: string | null;
   price: string;
+  priceSales: string | null;
+  isSales: number | null;
   productionCost: string | null;
   stock: number | null;
   imageUrl: string | null;
@@ -84,7 +87,8 @@ export function ProductsClient({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const selectedStoreName = selectedStore
     ? stores.find(s => s.id === selectedStore)?.name || "Select a Store"
     : "Select a Store";
@@ -118,6 +122,11 @@ export function ProductsClient({
     } finally {
       setTogglingId(null);
     }
+  };
+
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product);
+    setIsEditDialogOpen(true);
   };
 
 
@@ -265,7 +274,20 @@ export function ProductsClient({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{formatPrice(product.price)}</TableCell>
+                      <TableCell>
+                        {product.isSales === 1 && product.priceSales ? (
+                          <div className="space-y-1">
+                            <p className="text-xs line-through text-muted-foreground">
+                              {formatPrice(product.price)}
+                            </p>
+                            <p className="font-semibold text-red-600">
+                              {formatPrice(product.priceSales)}
+                            </p>
+                          </div>
+                        ) : (
+                          formatPrice(product.price)
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={
                           (product.stock || 0) > 10 ? "default" :
@@ -289,7 +311,11 @@ export function ProductsClient({
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEdit(product)}
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -324,6 +350,17 @@ export function ProductsClient({
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
       />
+
+       {/* Edit Product Dialog */}
+      <EditProductDialog
+        product={selectedProduct}
+        stores={stores}
+        categories={categories}
+        subcategories={subcategories}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
+
     </div>
   );
 }

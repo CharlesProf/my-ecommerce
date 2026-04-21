@@ -6,6 +6,8 @@ export async function insertProduct(data: {
   name: string;
   description: string | null;
   price: string;
+  priceSales: string | null;
+  isSales: number;
   productionCost: string | null;
   stock: number;
   sku: string | null;
@@ -46,5 +48,27 @@ export async function updateProductStatus(
   return db
     .update(products)
     .set({ isActive })
+    .where(eq(products.id, productId));
+}
+
+export async function updateProductById(
+  productId: string,
+  data: {
+    name: string;
+    description: string | null;
+    price: string;
+    priceSales: string | null;
+    isSales: number;
+    productionCost: string | null;
+    stock: number;
+    sku: string | null;
+    imageUrl: string | null;
+    storeId: string;
+    subcategoryId: string | null;
+  }
+) {
+  return db
+    .update(products)
+    .set(data)
     .where(eq(products.id, productId));
 }

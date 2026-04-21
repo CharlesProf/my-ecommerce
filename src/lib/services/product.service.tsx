@@ -4,6 +4,7 @@ import {
   findProductWithAdmin,
   deleteProductById,
   updateProductStatus,
+  updateProductById,
 } from "@/lib/repositories/product.repo";
 import { db } from "@/lib/db";
 import { stores } from "@/lib/db/schema";
@@ -33,6 +34,8 @@ export async function createProductService(
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || null,
     price: formData.get("price") as string,
+    priceSales: (formData.get("priceSales") as string) || null,
+    isSales: Number(formData.get("isSales") || 0),
     productionCost:
       (formData.get("productionCost") as string) || null,
     stock: Number(formData.get("stock") || 0),
@@ -68,4 +71,33 @@ export async function toggleProductStatusService(
 
   const newStatus = product.isActive === 1 ? 0 : 1;
   return updateProductStatus(productId, newStatus);
+}
+
+export async function updateProductService(
+  data: {
+    productId: string;
+    name: string;
+    description: string;
+    price: string;
+    priceSales: string | null;
+    isSales: number;
+    productionCost: string | null;
+    stock: number | null;
+    imageUrl: string;
+    sku: string;
+    storeId: string;
+    subcategoryId: string;
+  }
+){
+  return updateProductById(data.productId, {
+    name: data.name,
+    description: data.description || null,
+    price: data.price,    priceSales: data.priceSales || null,
+    isSales: data.isSales,    productionCost: data.productionCost || null,
+    stock: data.stock ?? 0,
+    sku: data.sku || null,
+    imageUrl: data.imageUrl || null,
+    storeId: data.storeId,
+    subcategoryId: data.subcategoryId || null,
+  });
 }

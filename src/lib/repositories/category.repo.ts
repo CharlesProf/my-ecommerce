@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { categories, subcategories, stores } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { runDbQuery } from "@/lib/db/query-retry";
 
 /* ---------- CATEGORY ---------- */
 
@@ -12,16 +13,18 @@ export async function insertCategory(name: string, storeId: string) {
 }
 
 export async function findCategoryWithAdmin(categoryId: string) {
-  const [category] = await db
-    .select({
-      id: categories.id,
-      storeId: categories.storeId,
-      adminId: stores.adminId,
-    })
-    .from(categories)
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(categories.id, categoryId))
-    .limit(1);
+  const [category] = await runDbQuery(() =>
+    db
+      .select({
+        id: categories.id,
+        storeId: categories.storeId,
+        adminId: stores.adminId,
+      })
+      .from(categories)
+      .leftJoin(stores, eq(categories.storeId, stores.id))
+      .where(eq(categories.id, categoryId))
+      .limit(1)
+  );
 
   return category;
 }
@@ -50,17 +53,19 @@ export async function insertSubcategory(name: string, categoryId: string) {
 }
 
 export async function findSubcategoryWithAdmin(subcategoryId: string) {
-  const [subcategory] = await db
-    .select({
-      id: subcategories.id,
-      categoryId: subcategories.categoryId,
-      adminId: stores.adminId,
-    })
-    .from(subcategories)
-    .leftJoin(categories, eq(subcategories.categoryId, categories.id))
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(subcategories.id, subcategoryId))
-    .limit(1);
+  const [subcategory] = await runDbQuery(() =>
+    db
+      .select({
+        id: subcategories.id,
+        categoryId: subcategories.categoryId,
+        adminId: stores.adminId,
+      })
+      .from(subcategories)
+      .leftJoin(categories, eq(subcategories.categoryId, categories.id))
+      .leftJoin(stores, eq(categories.storeId, stores.id))
+      .where(eq(subcategories.id, subcategoryId))
+      .limit(1)
+  );
 
   return subcategory;
 }
@@ -76,32 +81,36 @@ export async function deleteSubcategoriesByCategory(categoryId: string) {
 }
 
 export async function findAdminCategories(adminId: string) {
-  return db
-    .select({
-      id: categories.id,
-      name: categories.name,
-      storeId: categories.storeId,
-      storeName: stores.name,
-      createdAt: categories.createdAt,
-    })
-    .from(categories)
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(stores.adminId, adminId));
+  return runDbQuery(() =>
+    db
+      .select({
+        id: categories.id,
+        name: categories.name,
+        storeId: categories.storeId,
+        storeName: stores.name,
+        createdAt: categories.createdAt,
+      })
+      .from(categories)
+      .leftJoin(stores, eq(categories.storeId, stores.id))
+      .where(eq(stores.adminId, adminId))
+  );
 }
 
 export async function findAdminSubcategories(adminId: string) {
-  return db
-    .select({
-      id: subcategories.id,
-      name: subcategories.name,
-      categoryId: subcategories.categoryId,
-      categoryName: categories.name,
-      createdAt: subcategories.createdAt,
-    })
-    .from(subcategories)
-    .leftJoin(categories, eq(subcategories.categoryId, categories.id))
-    .leftJoin(stores, eq(categories.storeId, stores.id))
-    .where(eq(stores.adminId, adminId));
+  return runDbQuery(() =>
+    db
+      .select({
+        id: subcategories.id,
+        name: subcategories.name,
+        categoryId: subcategories.categoryId,
+        categoryName: categories.name,
+        createdAt: subcategories.createdAt,
+      })
+      .from(subcategories)
+      .leftJoin(categories, eq(subcategories.categoryId, categories.id))
+      .leftJoin(stores, eq(categories.storeId, stores.id))
+      .where(eq(stores.adminId, adminId))
+  );
 }
 
 export async function updateSubcategoryWithAdmin(  

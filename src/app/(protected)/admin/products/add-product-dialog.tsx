@@ -65,6 +65,8 @@ export function AddProductDialog({
     name: "",
     description: "",
     price: "",
+    priceSales: "",
+    isSales: false,
     productionCost: "",
     stock: "",
     sku: "",
@@ -121,6 +123,8 @@ export function AddProductDialog({
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("price", formData.price);
+      formDataToSend.append("priceSales", formData.priceSales);
+      formDataToSend.append("isSales", formData.isSales ? "1" : "0");
       formDataToSend.append("productionCost", formData.productionCost);
       formDataToSend.append("stock", formData.stock);
       formDataToSend.append("sku", formData.sku);
@@ -137,6 +141,8 @@ export function AddProductDialog({
         name: "",
         description: "",
         price: "",
+        priceSales: "",
+        isSales: false,
         productionCost: "",
         stock: "",
         sku: "",
@@ -301,35 +307,69 @@ export function AddProductDialog({
               <div className="grid gap-2">
                 <Label htmlFor="price">Price *</Label>
                 <Input
-                id="price"
-                type="text"
-                placeholder="Rp 0"
-                value={formatIDR(formData.price)}
-                onChange={(e) =>
+                  id="price"
+                  type="text"
+                  placeholder="Rp 0"
+                  value={formatIDR(formData.price)}
+                  onChange={(e) =>
                     setFormData({
-                    ...formData,
-                    price: unformatIDR(e.target.value),
+                      ...formData,
+                      price: unformatIDR(e.target.value),
                     })
-                }
-                required
+                  }
+                  required
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="cost">Production Cost</Label>
                 <Input
-                id="cost"
-                type="text"
-                placeholder="Rp 0"
-                value={formatIDR(formData.productionCost)}
-                onChange={(e) =>
+                  id="cost"
+                  type="text"
+                  placeholder="Rp 0"
+                  value={formatIDR(formData.productionCost)}
+                  onChange={(e) =>
                     setFormData({
-                    ...formData,
-                    productionCost: unformatIDR(e.target.value),
+                      ...formData,
+                      productionCost: unformatIDR(e.target.value),
                     })
-                }
+                  }
                 />
               </div>
             </div>
+
+            <div className="grid gap-3">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input
+                  id="is-sales"
+                  type="checkbox"
+                  checked={formData.isSales}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isSales: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-muted text-primary focus:ring-primary"
+                />
+                Mark this product as a sale
+              </label>
+            </div>
+
+            {formData.isSales && (
+              <div className="grid gap-2">
+                <Label htmlFor="price-sales">Sale Price</Label>
+                <Input
+                  id="price-sales"
+                  type="text"
+                  placeholder="Rp 0"
+                  value={formatIDR(formData.priceSales)}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      priceSales: unformatIDR(e.target.value),
+                    })
+                  }
+                  required
+                />
+              </div>
+            )}
 
             {/* Stock and SKU */}
             <div className="grid grid-cols-2 gap-4">
